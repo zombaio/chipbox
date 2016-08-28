@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'io.fabric'
-
+apply plugin: 'com.github.triplet.play'
 
 def getVersionCode = { ->
     def proc = Runtime.getRuntime().exec("git rev-list --all --count")
@@ -26,6 +26,21 @@ def getVersionName = { ->
     }
 
     return proc.getInputStream().readLines().get(0)
+}
+
+def getPublishingTrack = { ->
+    def branchName = System.getenv("CIRCLE_BRANCH")
+
+    if (branchName.equals("master")) {
+        project.logger.quiet("Deploying to production.")
+        return "production"
+    } else if (branchName.equals("develop")) {
+        project.logger.quiet("Deploying to beta.")
+        return "beta"
+    } else {
+        project.logger.quiet("Deploying to alpha.")
+        return "alpha"
+    }
 }
 
 android {
@@ -107,6 +122,14 @@ android {
 
     lintOptions {
         abortOnError false
+    }
+
+    play {
+        def email = System.getenv("SERVICE_ACCOUNT_EMAIL")
+        project.logger.quiet("Gradle: " + email)
+        serviceAccountEmail = email
+        pk12File = file('key.p12')
+        track = getPublishingTrack()
     }
 }
 
